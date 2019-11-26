@@ -5,6 +5,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from util import *
 from lxml import etree
+import html
 
 class Assistant(object):
 
@@ -61,7 +62,7 @@ class Assistant(object):
         :return:
         """
         if self.is_login:
-            print(get_current_time(), '登录成功')
+            print(get_current_time(), '登录成功[%s,%s]' % (self.sess.cookies.get('nick'), self.sess.cookies.get('custno')))
             return True
 
         self._get_login_page()
@@ -74,7 +75,7 @@ class Assistant(object):
         # get QR code ticket
         ticket = None
         retry_times = 90
-        r16 = ''.join(str(random.randint(0, 9)) for _ in range(16))
+        r16 = get_r16()
         ms = int(time.time() * 1000)
         for _ in range(retry_times):
             ticket = self._get_QRcode_ticket(r16, ms)
@@ -86,25 +87,20 @@ class Assistant(object):
             print(get_current_time(), '二维码扫描出错')
             return False
 
-        print(get_current_time(), '二维码登录成功')
+        print(get_current_time(), '已登陆，开始认证')
 
-        r16 = ''.join(str(random.randint(0, 9)) for _ in range(16))
+        r16 = get_r16()
         ms = int(time.time() * 1000)
         if self._login_auth(r16, ms):
-            if self._login_auth(r16, ms + 1):
-                print(get_current_time(), '认证成功')
-                self.nick_name = self.sess.cookies.get('nick')
-                self.custno = self.sess.cookies.get('custno')
-                self._save_cookies()
-                self.is_login = True
-                return True
-            else:
-                print(get_current_time(), '认证失败')
-                return True
-        else:
-            print(get_current_time(), '认证失败')
-            return False
-        return True
+            #if self._login_auth(r16, ms + 1):
+            self.nick_name = self.sess.cookies.get('nick')
+            self.custno = self.sess.cookies.get('custno')
+            self._save_cookies()
+            self.is_login = True
+            print(get_current_time(), '认证成功')
+            return True
+        print(get_current_time(), '认证失败')
+        return False
 
     def _get_login_page(self):
         url = "https://passport.suning.com/ids/login"
@@ -113,15 +109,13 @@ class Assistant(object):
 
     def _get_QRcode(self):
         url = 'https://passport.suning.com/ids/qrLoginUuidGenerate.htm'
-        payload = {
+        params = {
             'image': 'true',
             'yys': str(int(time.time() * 1000)),
         }
-        headers = {
-            'User-Agent': USER_AGENT,
-            'Referer': 'https://passport.suning.com/ids/login',
-        }
-        resp = self.sess.get(url=url, headers=headers, params=payload, verify=False)
+        headers = dict(self.headers)
+        headers['Referer'] = 'https://passport.suning.com/ids/login'
+        resp = self.sess.get(url=url, headers=headers, params=params, verify=False)
 
         if not response_status(resp):
             print(get_current_time(), '获取二维码失败')
@@ -133,30 +127,10 @@ class Assistant(object):
         open_image(QRCode_file)
         return True
 
-    def response_status(resp):
-        if resp.status_code != requests.codes.OK:
-            print('Status: %u, Url: %s' % (resp.status_code, resp.url))
-            return False
-        return True
-
-    def save_image(resp, image_file):
-        with open(image_file, 'wb') as f:
-            for chunk in resp.iter_content(chunk_size=1024):
-                f.write(chunk)
-
-    def open_image(image_file):
-        if os.name == "nt":
-            os.system('start ' + image_file)  # for Windows
-        else:
-            if os.uname()[0] == "Linux":
-                os.system("eog " + image_file)  # for Linux
-            else:
-                os.system("open " + image_file)  # for Mac
-
     def _get_QRcode_ticket(self, r16, ms):
         url = 'https://passport.suning.com/ids/qrLoginStateProbe'
 
-        payload = {
+        params = {
             'callback': 'jQuery1720{}_{}'.format(r16, ms),
         }
 
@@ -165,10 +139,7 @@ class Assistant(object):
             'terminal': 'PC'
         }
 
-        headers = {
-            'User-Agent': USER_AGENT
-        }
-        resp = self.sess.post(url=url, headers=headers, params=payload, data=data, verify=False)
+        resp = self.sess.post(url=url, headers=self.headers, params=params, data=data, verify=False)
 
         if not response_status(resp):
             print(get_current_time(), '获取二维码扫描结果出错')
@@ -190,15 +161,15 @@ class Assistant(object):
 
     def _login_auth(self, r16, ms):
         url = 'https://loginst.suning.com/authStatus'
-        payload = {
+        params = {
             'callback': 'jQuery1720{}_{}'.format(r16, ms),
             '_': ms + 100
         }
-        headers = {
-            'User-Agent': USER_AGENT,
-            'Referer': 'https://www.suning.com',
-        }
-        resp = self.sess.get(url=url, headers=headers, params=payload, verify=False)
+        params = get_callback_time(r16)
+        headers = dict(self.headers)
+        headers['Referer'] = 'https://www.suning.com'
+
+        resp = self.sess.get(url=url, headers=headers, params=params, verify=False)
 
         if not response_status(resp):
             return False
@@ -212,15 +183,14 @@ class Assistant(object):
 
     def get_order_list(self):
         url = 'https://order.suning.com/order/queryOrderList.do'
-        headers = {
-            'User-Agent': USER_AGENT,
-            'Referer': 'https://order.suning.com/order/orderList.do?safp=d488778a.homepage1.Ygnh.1',
-        }
+
+        headers = dict(self.headers)
+        headers['Referer'] = 'https://order.suning.com/order/orderList.do?safp=d488778a.homepage1.Ygnh.1'
 
         dt_now = datetime.datetime.now()
         dt_3month_ago = dt_now - relativedelta(months=3)
 
-        payload = {
+        params = {
             'transStatus': '',
             'pageNumber': '1',
             'condition': '',
@@ -229,7 +199,7 @@ class Assistant(object):
             'orderType': ''
         }
 
-        resp = self.sess.get(url=url, headers=headers, params=payload, allow_redirects=False, verify=False)
+        resp = self.sess.get(url=url, headers=headers, params=params, allow_redirects=False, verify=False)
         if not response_status(resp):
             print(get_current_time(), '获取订单失败')
             return False
@@ -246,64 +216,87 @@ class Assistant(object):
         :return: 清空购物车结果 True/False
         """
         # 1.select all items  2.batch remove items
-        r16 = self._get_r16()
-        cart_items_url = 'https://shopping.suning.com/showCartOneItems.do'
-        payload = {
-            'callback': self._get_jquery1720(r16),
-            '_': int(time.time() * 1000) + 100
-        }
-        headers = {
-            'User-Agent': USER_AGENT,
-            'Referer': 'https://shopping.suning.com/cart.do?safp=d488778a.homepage1.lQl9p.1',
-        }
-        resp = self.sess.get(url=cart_items_url, headers=headers, params=payload, verify=False)
-        if not response_status(resp):
-            print('获取购物车失败')
-            return False
+        r16 = get_r16()
+        headers = dict(self.headers)
+
         #clear invalidate items
         print(get_current_time(), '删除失效商品')
         clear_url = 'https://shopping.suning.com/emptyCartOne.do'
-        payload = {
-            'callback': self._get_jquery1720(r16),
-            '_': int(time.time() * 1000) + 100,
-            'emptyFlag': 2
-        }
-        headers = {
-            'User-Agent': USER_AGENT,
-            'Referer': 'https://shopping.suning.com/cart.do',
-        }
-        resp = self.sess.get(url=clear_url, headers=headers, params=payload, verify=False)
+        params = get_callback_time(r16)
+        params['emptyFlag'] = 2
+        headers['Referer'] = 'https://shopping.suning.com/cart.do'
+
+        resp = self.sess.get(url=clear_url, headers=headers, params=params, verify=False)
         if not response_status(resp):
             print('删除失效商品失败')
             return False
 
-        js = parse_json(resp.text)
-        html = etree.HTML(js['html'])
-        result = etree.tostring(html)
-        print(result.decode("utf-8"))
-        return True
-        select_url = 'https://shopping.suning.com/operateCartOneCheck.do?callback=jQuery1720574389693595976_1574606124273&loginSign=true&operateCheckCmmdty=610100000415472434-1%2C572925680237623859-1%2C572925700355160796-1&_=1574606967790'
-        remove_url = 'https://cart.jd.com/batchRemoveSkusFromCart.action'
-        data = {
-            't': 0,
-            'outSkus': '',
-            'random': random.random(),
-        }
-        try:
-            select_resp = self.sess.post(url=select_url, data=data)
-            remove_resp = self.sess.post(url=remove_url, data=data)
-            if (not response_status(select_resp)) or (not response_status(remove_resp)):
-                print(get_current_time(), '购物车清空失败')
-                return False
-            print(get_current_time(), '购物车清空成功')
-            return True
-        except Exception as e:
-            print(get_current_time(), e)
+        cart_items_url = 'https://shopping.suning.com/showCartOneItems.do'
+        params = get_callback_time(r16)
+        headers['Referer'] = 'https://shopping.suning.com/cart.do?safp=d488778a.homepage1.lQl9p.1'
+
+        resp = self.sess.get(url=cart_items_url, headers=headers, params=params, verify=False)
+        if not response_status(resp):
+            print('获取购物车失败')
             return False
 
-    def _get_jquery1720(self, r16):
-        ms = int(time.time() * 1000)
-        return 'jQuery1720{}_{}'.format(r16, ms)
+        js = parse_json(resp.text)
+        html_str = html.unescape(etree.tostring(etree.HTML(js['html'])).decode("utf-8"))
+        #print(html_str)
+        result = etree.fromstring(html_str)
+        es = result.xpath('//input[@name="icart1_goods_sel" and @type="checkbox"]')
+        items = []
+        for e in es:
+            item = {}
+            item['id'] = e.xpath('@id')[0]
+            item['salesprice'] = e.xpath('@salesprice')[0]
+            item['shopcode'] = e.xpath('@shopcode')[0]
+            item['cmmdtyname'] = e.xpath('@cmmdtyname')[0]
+            item['cmmdtycode'] = e.xpath('@cmmdtycode')[0]
+            items.append(item)
+        #print(items)
+        if len(items) == 0:
+            return True
+        operateCheckCmmdty = ''
+        for i, item in enumerate(items):
+            if i > 0:
+                operateCheckCmmdty = operateCheckCmmdty.join('%2C')
+            operateCheckCmmdty = operateCheckCmmdty.join('%s-1' % item['id'])
+        print(operateCheckCmmdty)
+        oper_check_url = 'https://shopping.suning.com/operateCartOneCheck.do'
+        params = get_callback_time(r16)
+        params['loginSign'] = 'true'
+        params['operateCheckCmmdty'] = operateCheckCmmdty
+        headers['Referer'] = 'https://shopping.suning.com/cart.do?safp=d488778a.ddlb.lQl9p.1'
+        resp = self.sess.get(url=oper_check_url, headers=headers, params=params, verify=False)
+        if not response_status(resp):
+            print(get_current_time(), '全选失败')
+            return False
 
-    def _get_r16(self):
-        return ''.join(str(random.randint(0, 9)) for _ in range(16))
+        # auth_url = 'https://shopping.suning.com/authStatus'
+        # r16 = get_r16()
+        # params = get_callback_time(r16)
+        # headers['Referer'] = 'https://shopping.suning.com/cart.do'
+        # resp = self.sess.get(url=auth_url, headers=headers, params=params, verify=False)
+        # if not response_status(resp):
+        #     print(get_current_time(), 'shopping auth fail')
+        #     return False
+
+        del_url = 'https://shopping.suning.com/deleteCartOnePro.do'
+        cummtyItemNos = ''
+        for i, item in enumerate(items):
+            if i > 0:
+                cummtyItemNos = cummtyItemNos.join('%2C')
+            cummtyItemNos = cummtyItemNos.join(item['id'])
+        params = get_callback_time(r16)
+        params['loginSign'] = 'true'
+        params['cummtyItemNos'] = cummtyItemNos
+        print(cummtyItemNos)
+        resp = self.sess.get(url=del_url, headers=headers, params=params, verify=False)
+        print(resp.text)
+        if not response_status(resp):
+            print(get_current_time(), '删除选中失败')
+            return False
+        print('清空成功')
+        return True
+

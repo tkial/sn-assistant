@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 import os
+import random
 import time
 import json
 from base64 import b64encode
@@ -110,3 +111,17 @@ def parse_area_id(area_id='12_904_3375'):
     area = list(area_id.split('_'))
     area.extend((4 - len(area)) * ['0'])
     return area
+
+def get_jquery1720(r16):
+    ms = int(time.time() * 1000)
+    return 'jQuery1720{}_{}'.format(r16, ms)
+
+def get_r16():
+    return ''.join(str(random.randint(0, 9)) for _ in range(16))
+
+def get_callback_time(r16):
+    dict = {
+        'callback': get_jquery1720(r16),
+        '_': int(time.time() * 1000) + 100
+    }
+    return dict
