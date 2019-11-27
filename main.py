@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-from assistant import Assistant
+#from assistant import Assistant
+from util import Plat
+from vip_assistant import Assistant
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context()
 
@@ -10,9 +12,9 @@ if __name__ == '__main__':
     https://github.com/tychxn/jd-assistant/wiki/1.-%E4%BA%AC%E4%B8%9C%E6%8A%A2%E8%B4%AD%E5%8A%A9%E6%89%8B%E7%94%A8%E6%B3%95
     """
     #ssl._create_default_https_context = ssl._create_unverified_context()
-    asst = Assistant()  # 初始化
+    asst = Assistant(Plat.SN, '13760735626')  # 初始化
     asst.login_by_QRcode()  # 扫码登陆
-    asst.clear_cart()
+    #asst.clear_cart()
     #asst.get_order_list()
     #asst.clear_cart()
     #asst.exec_reserve_seckill_by_time(sku_id="100009083498", buy_time="2019-11-10 22:42:30.000")

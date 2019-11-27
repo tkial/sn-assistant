@@ -10,6 +10,9 @@ from random import shuffle
 import requests
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5
+import pickle
+
+from enum import Enum, unique
 
 RSA_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDC7kw8r6tq43pwApYvkJ5lalja
@@ -23,6 +26,13 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 DEFAULT_EID = 'D5GZVU5ZO5VBUFMLOUHMNHK2BXXVKI4ZQK3JKCOIB4PRERKTQXV3BNSG557BQLPVVT4ZN3NKVSXAKTVPJXDEPEBDGU'
 
 DEFAULT_FP = '18c7d83a053e6bbb51f755aea595bbb8'
+
+@unique
+class Plat(Enum):
+    JD = 'jd'
+    SN = 'sn'
+    VIP = 'vip'
+    KL = 'kl'
 
 
 def encrypt_pwd(password, public_key=RSA_PUBLIC_KEY):
@@ -125,3 +135,20 @@ def get_callback_time(r16):
         '_': int(time.time() * 1000) + 100
     }
     return dict
+
+def get_cookies_file(plat, id):
+    return './cookies/{0}/{1}.cookies'.format(plat, id)
+
+def save_cookies(plat, id, cookies):
+    cookies_file = get_cookies_file(plat, id)
+    directory = os.path.dirname(cookies_file)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(cookies_file, 'wb') as f:
+        pickle.dump(cookies, f)
+
+def load_cookies(plat, id, cookies):
+    cookies_file = get_cookies_file(plat, id)
+    with open(cookies_file, 'rb') as f:
+        local_cookies = pickle.load(f)
+        cookies.update(local_cookies)
