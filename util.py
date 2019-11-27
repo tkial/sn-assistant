@@ -27,6 +27,7 @@ DEFAULT_EID = 'D5GZVU5ZO5VBUFMLOUHMNHK2BXXVKI4ZQK3JKCOIB4PRERKTQXV3BNSG557BQLPVV
 
 DEFAULT_FP = '18c7d83a053e6bbb51f755aea595bbb8'
 
+
 @unique
 class Plat(Enum):
     JD = 'jd'
@@ -122,12 +123,15 @@ def parse_area_id(area_id='12_904_3375'):
     area.extend((4 - len(area)) * ['0'])
     return area
 
+
 def get_jquery1720(r16):
     ms = int(time.time() * 1000)
     return 'jQuery1720{}_{}'.format(r16, ms)
 
+
 def get_r16():
     return ''.join(str(random.randint(0, 9)) for _ in range(16))
+
 
 def get_callback_time(r16):
     dict = {
@@ -136,19 +140,22 @@ def get_callback_time(r16):
     }
     return dict
 
-def get_cookies_file(plat, id):
-    return './cookies/{0}/{1}.cookies'.format(plat, id)
 
-def save_cookies(plat, id, cookies):
-    cookies_file = get_cookies_file(plat, id)
+def get_cookies_file(plat, account):
+    return './cookies/{0}/{1}.cookies'.format(plat, account)
+
+
+def save_cookies(plat, account, cookies):
+    cookies_file = get_cookies_file(plat, account)
     directory = os.path.dirname(cookies_file)
     if not os.path.exists(directory):
         os.makedirs(directory)
     with open(cookies_file, 'wb') as f:
         pickle.dump(cookies, f)
 
-def load_cookies(plat, id, cookies):
-    cookies_file = get_cookies_file(plat, id)
+
+def load_cookies(plat, account, cookies):
+    cookies_file = get_cookies_file(plat, account)
     with open(cookies_file, 'rb') as f:
         local_cookies = pickle.load(f)
         cookies.update(local_cookies)
