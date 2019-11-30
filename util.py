@@ -27,6 +27,8 @@ DEFAULT_EID = 'D5GZVU5ZO5VBUFMLOUHMNHK2BXXVKI4ZQK3JKCOIB4PRERKTQXV3BNSG557BQLPVV
 
 DEFAULT_FP = '18c7d83a053e6bbb51f755aea595bbb8'
 
+CER_VERIFY = True
+
 
 @unique
 class Plat(Enum):
@@ -124,6 +126,7 @@ def parse_area_id(area_id='12_904_3375'):
     return area
 
 
+# region sn
 def get_jquery1720(r16):
     ms = int(time.time() * 1000)
     return 'jQuery1720{}_{}'.format(r16, ms)
@@ -139,6 +142,38 @@ def get_callback_time(r16):
         '_': int(time.time() * 1000) + 100
     }
     return dict
+# endregion
+
+# region vip
+def mar_rand():
+    seed = '0123456789abcdef'
+    return ''.join(random.choice(seed) for _ in range(32))
+
+def mar_guid():
+    return (''.join(r_hex4() for _ in range(8))).upper()
+
+def r_hex4():
+    return format(int(65536 * (1 + random.random())), '0x')[1:]
+
+def mar_rand2():
+    r32 = mar_rand()
+    ms = str(int(time.time() * 1000))
+    time_sum = 0
+    for s in ms:
+        time_sum += int(s)
+    skip = time_sum % 32
+    k = time_sum
+    for i in range(len(r32)):
+        if i != skip:
+            k += int(r32[i], 16)
+    k16 = format((k % 16), '0x')
+    return ms + '_' + r32[:skip] + k16 + r32[skip+1:]
+
+def gmtime_d(d):
+    #return time.gmtime(int(time.time()) + d * 24 * 3600)
+    return time.time() + d * 24 * 3600 * 1000;
+
+# endregion
 
 
 def get_cookies_file(plat, account):
@@ -159,3 +194,6 @@ def load_cookies(plat, account, cookies):
     with open(cookies_file, 'rb') as f:
         local_cookies = pickle.load(f)
         cookies.update(local_cookies)
+
+if __name__ == '__main__':
+    print(mar_rand2())

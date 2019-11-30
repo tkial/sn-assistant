@@ -104,7 +104,7 @@ class Assistant(object):
 
     def _get_login_page(self):
         url = "https://passport.suning.com/ids/login"
-        page = self.sess.get(url, headers=self.headers, verify=False)
+        page = self.sess.get(url, headers=self.headers, verify=CER_VERIFY)
         return page
 
     def _get_QRcode(self):
@@ -115,7 +115,7 @@ class Assistant(object):
         }
         headers = dict(self.headers)
         headers['Referer'] = 'https://passport.suning.com/ids/login'
-        resp = self.sess.get(url=url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=url, headers=headers, params=params, verify=CER_VERIFY)
 
         if not response_status(resp):
             print(get_current_time(), '获取二维码失败')
@@ -139,7 +139,7 @@ class Assistant(object):
             'terminal': 'PC'
         }
 
-        resp = self.sess.post(url=url, headers=self.headers, params=params, data=data, verify=False)
+        resp = self.sess.post(url=url, headers=self.headers, params=params, data=data, verify=CER_VERIFY)
 
         if not response_status(resp):
             print(get_current_time(), '获取二维码扫描结果出错')
@@ -169,7 +169,7 @@ class Assistant(object):
         headers = dict(self.headers)
         headers['Referer'] = 'https://www.suning.com'
 
-        resp = self.sess.get(url=url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=url, headers=headers, params=params, verify=CER_VERIFY)
 
         if not response_status(resp):
             return False
@@ -199,7 +199,7 @@ class Assistant(object):
             'orderType': ''
         }
 
-        resp = self.sess.get(url=url, headers=headers, params=params, allow_redirects=False, verify=False)
+        resp = self.sess.get(url=url, headers=headers, params=params, allow_redirects=False, verify=CER_VERIFY)
         if not response_status(resp):
             print(get_current_time(), '获取订单失败')
             return False
@@ -226,7 +226,7 @@ class Assistant(object):
         params['emptyFlag'] = 2
         headers['Referer'] = 'https://shopping.suning.com/cart.do'
 
-        resp = self.sess.get(url=clear_url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=clear_url, headers=headers, params=params, verify=CER_VERIFY)
         if not response_status(resp):
             print('删除失效商品失败')
             return False
@@ -235,7 +235,7 @@ class Assistant(object):
         params = get_callback_time(r16)
         headers['Referer'] = 'https://shopping.suning.com/cart.do?safp=d488778a.homepage1.lQl9p.1'
 
-        resp = self.sess.get(url=cart_items_url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=cart_items_url, headers=headers, params=params, verify=CER_VERIFY)
         if not response_status(resp):
             print('获取购物车失败')
             return False
@@ -268,7 +268,7 @@ class Assistant(object):
         params['loginSign'] = 'true'
         params['operateCheckCmmdty'] = operateCheckCmmdty
         headers['Referer'] = 'https://shopping.suning.com/cart.do?safp=d488778a.ddlb.lQl9p.1'
-        resp = self.sess.get(url=oper_check_url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=oper_check_url, headers=headers, params=params, verify=CER_VERIFY)
         if not response_status(resp):
             print(get_current_time(), '全选失败')
             return False
@@ -292,7 +292,7 @@ class Assistant(object):
         params['loginSign'] = 'true'
         params['cummtyItemNos'] = cummtyItemNos
         print(cummtyItemNos)
-        resp = self.sess.get(url=del_url, headers=headers, params=params, verify=False)
+        resp = self.sess.get(url=del_url, headers=headers, params=params, verify=CER_VERIFY)
         print(resp.text)
         if not response_status(resp):
             print(get_current_time(), '删除选中失败')
